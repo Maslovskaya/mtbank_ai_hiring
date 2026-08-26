@@ -17,3 +17,6 @@ logs/
 # ОС/редактор
 .DS_Store
 Thumbs.db
+
+# Автосгенерированные файлы pipelines
+pipelines/*/valves.json
