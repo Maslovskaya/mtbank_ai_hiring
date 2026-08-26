@@ -15,8 +15,9 @@ services:
       - "9099:9099"
     volumes:
       - ./pipelines:/app/pipelines
+    env_file:
+      - .env
     restart: unless-stopped
 
 volumes:
   open-webui-data:
-  pipelines-data:
