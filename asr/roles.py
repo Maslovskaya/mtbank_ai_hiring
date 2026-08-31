@@ -51,6 +51,7 @@ def assign_roles(segments):
     # TODO 4: пройдись циклом по segments, для каждого seg замени
     #   seg["speaker"] = role_map[seg["speaker"]]
     for seg in segments:
-        seg["speaker"] = role_map[seg["speaker"]]
+        seg["speaker"] = role_map.get(seg["speaker"], seg["speaker"])
+
 
     return segments
