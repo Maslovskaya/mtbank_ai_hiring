@@ -6,6 +6,8 @@ from faster_whisper import WhisperModel
 from pyannote.audio import Pipeline
 
 from asr.aligner import assign_speakers
+from asr.roles import assign_roles
+
 
 load_dotenv()
 
@@ -30,5 +32,6 @@ diarization_segments = [
 ]
 
 result = assign_speakers(asr_segments, diarization_segments)
+result = assign_roles(result)
 
 print(json.dumps(result, ensure_ascii=False, indent=2))
