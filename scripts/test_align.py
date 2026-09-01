@@ -9,7 +9,7 @@ from asr.transcriber import transcribe
 
 load_dotenv()
 
-AUDIO = "test_data/Record3.mp3"
+AUDIO = "test_data/Record2.mp3"
 
 print("Транскрибирую...")
 asr_segments = transcribe(AUDIO)
