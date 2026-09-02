@@ -1,7 +1,6 @@
-import json
-
 from agents.llm_client import DEFAULT_MODEL, get_client
 from agents.utils import format_transcript
+from llm_json import parse_json_response
 
 SYSTEM_PROMPT = """Ты — агент-классификатор обращений в контакт-центр банка.
 Тебе дан транскрипт телефонного разговора между оператором и клиентом.
@@ -32,10 +31,10 @@ def classify(segments):
         ],
     )
 
-    result = json.loads(response.choices[0].message.content)
+    result = parse_json_response(response.choices[0].message.content)
     return result
 
-if __name__ == "__main__":
+'''if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
 
@@ -43,4 +42,4 @@ if __name__ == "__main__":
         {"speaker": "Оператор", "text": "Добрый день, МТБанк, меня зовут Анна, чем могу помочь?"},
         {"speaker": "Клиент", "text": "Здравствуйте. Хочу узнать про условия по вложений под проценты наличными и их вывод, вклады"},
     ]
-    print(classify(example))
+    print(classify(example))'''

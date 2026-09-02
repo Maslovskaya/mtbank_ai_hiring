@@ -1,6 +1,7 @@
-import json
 import os
 from openai import OpenAI
+
+from llm_json import parse_json_response
 
 
 def assign_roles(segments):
@@ -46,7 +47,7 @@ def assign_roles(segments):
 
     # TODO 3: распарси JSON из ответа: role_map = json.loads(response.choices[0].message.content)
     
-    role_map = json.loads(response.choices[0].message.content)
+    role_map = parse_json_response(response.choices[0].message.content)
 
     # TODO 4: пройдись циклом по segments, для каждого seg замени
     #   seg["speaker"] = role_map[seg["speaker"]]
