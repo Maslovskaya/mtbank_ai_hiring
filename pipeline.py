@@ -1,4 +1,5 @@
 import json
+import time
 
 from dotenv import load_dotenv
 
@@ -13,37 +14,29 @@ from agents.compliance import check_compliance
 from agents.summarizer import summarize
 
 def analyze(audio_path):
-    """
-    Полный анализ звонка: ASR + диаризация + роли + 4 агента.
-    Возвращает JSON ровно по формату из ТЗ.
-    """
-    # TODO: собери segments так же, как в scripts/test_align.py
-    #   (transcribe → diarize → assign_speakers → assign_roles)
-    
     load_dotenv()
 
-    # print("Транскрибирую...")
+    t0 = time.time()
     asr_segments = transcribe(audio_path)
-    # print("Диаризую...")
+    t1 = time.time()
+    print(f"transcribe: {t1 - t0:.1f} сек")
+
     diarization_segments = diarize(audio_path)
+    t2 = time.time()
+    print(f"diarize: {t2 - t1:.1f} сек")
 
     segments = assign_speakers(asr_segments, diarization_segments)
     segments = assign_roles(segments)
+    t3 = time.time()
+    print(f"assign_speakers+roles: {t3 - t2:.1f} сек")
 
-    # print(json.dumps(result, ensure_ascii=False, indent=2))
-
-    # TODO: вызови все 4 агента по очереди: classify(segments), check_quality(segments),
-    #   check_compliance(segments), summarize(segments) — сохрани каждый результат
-    #   в отдельную переменную
-    
     classification = classify(segments)
     quality_score = check_quality(segments)
     compliance = check_compliance(segments)
     summary_result = summarize(segments)
+    t4 = time.time()
+    print(f"4 агента (последовательно): {t4 - t3:.1f} сек")
 
-    # TODO: собери и верни финальный словарь по схеме выше — обрати внимание,
-    #   что summary и action_items нужно "распаковать" из результата summarize()
-    
     result = {
         "transcript": segments,
         "classification": classification,
@@ -53,6 +46,7 @@ def analyze(audio_path):
         "action_items": summary_result["action_items"],
     }
 
+    print(f"ИТОГО: {time.time() - t0:.1f} сек")
     return result
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
-from agents.llm_client import DEFAULT_MODEL, get_client
+from agents.llm_client import call_llm_json
 from agents.utils import format_transcript
-from llm_json import parse_json_response
 
 SYSTEM_PROMPT = """Ты — агент-суммаризатор в контакт-центре банка.
 Тебе дан транскрипт телефонного разговора между оператором и клиентом.
@@ -13,6 +12,8 @@ SYSTEM_PROMPT = """Ты — агент-суммаризатор в контак�
    "Перезвонить клиенту через 3 дня"). Не пиши общие фразы вроде "помочь клиенту" —
    только конкретные, проверяемые пункты. Если действий не требуется — верни пустой список.
 
+Отвечай только на русском языке, без вкраплений других языков.
+
 Ответь СТРОГО в формате JSON, без пояснений и без markdown-разметки:
 {"summary": "...", "action_items": ["...", "..."]}"""
 
@@ -22,19 +23,8 @@ def summarize(segments):
     segments: список словарей {"start", "end", "text", "speaker"} — транскрипт с ролями.
     Возвращает {"summary": "...", "action_items": [...]}
     """
-    client = get_client()
     transcript_text = format_transcript(segments)
-
-    response = client.chat.completions.create(
-        model=DEFAULT_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": transcript_text},
-        ],
-    )
-
-    result = parse_json_response(response.choices[0].message.content)
-    return result
+    return call_llm_json(SYSTEM_PROMPT, transcript_text)
 
 
 if __name__ == "__main__":

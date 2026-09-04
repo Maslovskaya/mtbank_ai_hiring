@@ -1,8 +1,7 @@
-from agents.llm_client import DEFAULT_MODEL, get_client
+from agents.llm_client import call_llm_json
 from agents.utils import format_transcript
-from llm_json import parse_json_response
 
-SYSTEM_PROMPT = """Ты оцениваешь общениен обращений в контакт-центр банка. Ты агент контроля качества обслуживания.
+SYSTEM_PROMPT = """Ты оцениваешь общение оператора контакт-центра банка. Ты агент контроля качества обслуживания.
 Тебе дан транскрипт телефонного разговора между оператором и клиентом.
 
 Определи:
@@ -13,7 +12,7 @@ SYSTEM_PROMPT = """Ты оцениваешь общениен обращений
 5. total - пусть за каждый пункт начисляется по 25 баллов, в total вывести обще набранное количество баллов за разговор.
 
 Ответь СТРОГО в формате JSON, без пояснений и без markdown-разметки:
-пример одвета {
+пример ответа {
   "total": 78,
   "checklist": {
     "greeting": true,
@@ -23,31 +22,12 @@ SYSTEM_PROMPT = """Ты оцениваешь общениен обращений
   }
 }"""
 
+
 def check_quality(segments):
-    client = get_client()
     transcript_text = format_transcript(segments)
+    return call_llm_json(SYSTEM_PROMPT, transcript_text)
 
-    response = client.chat.completions.create(
-        model=DEFAULT_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": transcript_text},
-        ],
-    )
 
-    result = parse_json_response(response.choices[0].message.content)
-    return result
-
-'''if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    example = [
-        {"speaker": "Оператор", "text": "Добрый день, МТБанк, меня зовут Анна, чем могу помочь?"},
-        {"speaker": "Клиент", "text": "Здравствуйте. Хочу узнать про условия по вложений под проценты наличными и их вывод, вклады"},
-    ]
-    print(check_quality(example))'''
-    
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
@@ -64,5 +44,3 @@ if __name__ == "__main__":
     segments = assign_roles(segments)
 
     print(check_quality(segments))
-
-
