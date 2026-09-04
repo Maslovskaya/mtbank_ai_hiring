@@ -1,5 +1,6 @@
 import os
 
+import torchaudio
 from pyannote.audio import Pipeline
 
 _pipeline = None  # пока не загружена
@@ -17,7 +18,8 @@ def get_pipeline():
 
 def diarize(audio_path):
     pipeline = get_pipeline()
-    result = pipeline(audio_path)
+    waveform, sample_rate = torchaudio.load(audio_path)
+    result = pipeline({"waveform": waveform, "sample_rate": sample_rate})
     return [
         {"start": turn.start, "end": turn.end, "speaker": speaker}
         for turn, _, speaker in result.speaker_diarization.itertracks(yield_label=True)

@@ -11,13 +11,25 @@ services:
   pipelines:
     image: ghcr.io/open-webui/pipelines:main
     container_name: pipelines
+    entrypoint: ["sh", "-c"]
+    command:
+      - "apt-get update && apt-get install -y --no-install-recommends ffmpeg && bash start.sh"
     ports:
       - "9099:9099"
     volumes:
       - ./pipelines:/app/pipelines
+      - ./asr:/app/asr
+      - ./agents:/app/agents
+      - ./pipeline.py:/app/pipeline.py
+      - ./llm_json.py:/app/llm_json.py
+    environment:
+      - PIP_DEFAULT_TIMEOUT=120
+      - PYTHONUNBUFFERED=1
     env_file:
       - .env
     restart: unless-stopped
 
+
 volumes:
   open-webui-data:
+
