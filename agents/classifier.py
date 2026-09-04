@@ -1,6 +1,5 @@
-from agents.llm_client import DEFAULT_MODEL, get_client
+from agents.llm_client import call_llm_json
 from agents.utils import format_transcript
-from llm_json import parse_json_response
 
 SYSTEM_PROMPT = """Ты — агент-классификатор обращений в контакт-центр банка.
 Тебе дан транскрипт телефонного разговора между оператором и клиентом.
@@ -15,31 +14,22 @@ SYSTEM_PROMPT = """Ты — агент-классификатор обращен
 Ответь СТРОГО в формате JSON, без пояснений и без markdown-разметки:
 {"topic": "...", "priority": "..."}"""
 
+
 def classify(segments):
     """
     segments: список словарей {"start", "end", "text", "speaker"} — транскрипт с ролями.
     Возвращает {"topic": "...", "priority": "..."}
     """
-    client = get_client()
     transcript_text = format_transcript(segments)
+    return call_llm_json(SYSTEM_PROMPT, transcript_text)
 
-    response = client.chat.completions.create(
-        model=DEFAULT_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": transcript_text},
-        ],
-    )
 
-    result = parse_json_response(response.choices[0].message.content)
-    return result
-
-'''if __name__ == "__main__":
+if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
 
     example = [
         {"speaker": "Оператор", "text": "Добрый день, МТБанк, меня зовут Анна, чем могу помочь?"},
-        {"speaker": "Клиент", "text": "Здравствуйте. Хочу узнать про условия по вложений под проценты наличными и их вывод, вклады"},
+        {"speaker": "Клиент", "text": "Здравствуйте. Хочу узнать про условия по кредиту наличными."},
     ]
-    print(classify(example))'''
+    print(classify(example))

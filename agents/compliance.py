@@ -1,6 +1,5 @@
-from agents.llm_client import DEFAULT_MODEL, get_client
+from agents.llm_client import call_llm_json
 from agents.utils import format_transcript
-from llm_json import parse_json_response
 
 FORBIDDEN_PHRASES = [
     "гарантированно одобрим",
@@ -43,18 +42,8 @@ def check_compliance(segments):
     operator_text = " ".join(seg["text"] for seg in segments if seg["speaker"] == "Оператор")
     found_by_regex = find_forbidden_phrases(operator_text)
 
-    client = get_client()
     transcript_text = format_transcript(segments)
-
-    response = client.chat.completions.create(
-        model=DEFAULT_MODEL,
-        messages=[
-            {"role": "system", "content": COMPLIANCE_SYSTEM_PROMPT},
-            {"role": "user", "content": transcript_text},
-        ],
-    )
-
-    llm_result = parse_json_response(response.choices[0].message.content)
+    llm_result = call_llm_json(COMPLIANCE_SYSTEM_PROMPT, transcript_text)
 
     all_issues = found_by_regex + llm_result["issues"]
 
@@ -77,7 +66,6 @@ if __name__ == "__main__":
     segments = assign_roles(segments)
 
     print(check_compliance(segments))
-
 
     bad_segments = [
         {"speaker": "Оператор", "text": "Добрый день! Мы гарантированно одобрим вам кредит без документов."},
