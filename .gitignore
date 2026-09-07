@@ -22,3 +22,6 @@ Thumbs.db
 pipelines/*/valves.json
 # Кэш pytest
 .pytest_cache/
+
+# Карантин неудачно загруженных пайплайнов (создаёт сам framework)
+pipelines/failed/
