@@ -3,9 +3,10 @@ import os
 
 from openai import OpenAI
 
+from config import LLM_BASE_URL, LLM_MODEL
 from llm_json import parse_json_response
 
-DEFAULT_MODEL = "qwen/qwen3.8-27b"
+DEFAULT_MODEL = LLM_MODEL
 
 _client = None
 
@@ -15,7 +16,7 @@ def get_client():
     if _client is None:
         _client = OpenAI(
             api_key=os.environ["GROQ_API_KEY"],
-            base_url="https://api.groq.com/openai/v1",
+            base_url=LLM_BASE_URL,
         )
     return _client
 

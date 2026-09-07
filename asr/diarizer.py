@@ -3,6 +3,8 @@ import os
 import torchaudio
 from pyannote.audio import Pipeline
 
+from config import DIARIZATION_MODEL
+
 _pipeline = None  # пока не загружена
 
 
@@ -10,7 +12,7 @@ def get_pipeline():
     global _pipeline
     if _pipeline is None:  # первый вызов — грузим и запоминаем
         _pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
+            DIARIZATION_MODEL,
             token=os.environ["HF_TOKEN"],
         )
     return _pipeline  # повторные вызовы — отдаём уже готовую
