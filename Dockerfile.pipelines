@@ -1,0 +1,16 @@
+# Образ сервиса OpenWebUI Pipelines с уже вшитыми зависимостями нашего пайплайна.
+#
+# Берём официальный образ pipelines и достраиваем его: добавляем ffmpeg и
+# Python-пакеты. Без этого они ставились бы заново при каждом пересоздании
+# контейнера (минуты ожидания и зависимость от скорости сети).
+FROM ghcr.io/open-webui/pipelines:main
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Код пайплайна и общие модули не копируем — они подключаются томами
+# в docker-compose.yml, чтобы правки применялись без пересборки образа.

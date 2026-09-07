@@ -1,4 +1,23 @@
+# Весь стек системы: docker compose up -d поднимает всё сразу.
+#
+#   api         — REST API + веб-интерфейс (порт 8000)
+#   open-webui  — чат-интерфейс OpenWebUI   (порт 3000)
+#   pipelines   — наш OpenWebUI Pipeline    (порт 9099)
+
 services:
+  api:
+    build: .
+    container_name: mtbank-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # общий кэш скачанных моделей: Whisper и pyannote качаются один раз
+      # и переживают пересоздание контейнеров
+      - model-cache:/root/.cache
+    restart: unless-stopped
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
@@ -9,14 +28,15 @@ services:
     restart: unless-stopped
 
   pipelines:
-    image: ghcr.io/open-webui/pipelines:main
+    build:
+      context: .
+      dockerfile: Dockerfile.pipelines
     container_name: pipelines
-    entrypoint: ["sh", "-c"]
-    command:
-      - "apt-get update && apt-get install -y --no-install-recommends ffmpeg && bash start.sh"
     ports:
       - "9099:9099"
     volumes:
+      # код подключаем томами, а не копируем в образ — правки применяются
+      # перезапуском контейнера, без пересборки
       - ./pipelines:/app/pipelines
       - ./asr:/app/asr
       - ./agents:/app/agents
@@ -25,14 +45,11 @@ services:
       - ./config.py:/app/config.py
       - ./logger.py:/app/logger.py
       - ./audio_input.py:/app/audio_input.py
-    environment:
-      - PIP_DEFAULT_TIMEOUT=120
-      - PYTHONUNBUFFERED=1
+      - model-cache:/root/.cache
     env_file:
       - .env
     restart: unless-stopped
 
-
 volumes:
   open-webui-data:
-
+  model-cache:
