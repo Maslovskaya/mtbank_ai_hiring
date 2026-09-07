@@ -20,3 +20,5 @@ Thumbs.db
 
 # Автосгенерированные файлы pipelines
 pipelines/*/valves.json
+# Кэш pytest
+.pytest_cache/
