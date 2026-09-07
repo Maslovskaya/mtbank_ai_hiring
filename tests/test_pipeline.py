@@ -2,7 +2,7 @@ from pipeline import analyze
 
 
 def test_analyze_full_pipeline():
-    result = analyze("test_data/Record1.mp3")
+    result = analyze("test_data/record1.mp3")
 
     assert "transcript" in result
     assert "classification" in result
