@@ -1,6 +1,6 @@
 from faster_whisper import WhisperModel
 
-from config import (
+from settings import (
     WHISPER_COMPUTE_TYPE,
     WHISPER_DEVICE,
     WHISPER_LANGUAGE,

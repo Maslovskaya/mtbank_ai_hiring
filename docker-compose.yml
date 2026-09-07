@@ -42,7 +42,7 @@ services:
       - ./agents:/app/agents
       - ./pipeline.py:/app/pipeline.py
       - ./llm_json.py:/app/llm_json.py
-      - ./config.py:/app/config.py
+      - ./settings.py:/app/settings.py
       - ./logger.py:/app/logger.py
       - ./audio_input.py:/app/audio_input.py
       - model-cache:/root/.cache

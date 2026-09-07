@@ -3,7 +3,7 @@ import os
 
 from openai import OpenAI
 
-from config import LLM_BASE_URL, LLM_MODEL
+from settings import LLM_BASE_URL, LLM_MODEL
 from llm_json import parse_json_response
 
 DEFAULT_MODEL = LLM_MODEL

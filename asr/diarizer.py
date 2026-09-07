@@ -3,7 +3,7 @@ import os
 import torchaudio
 from pyannote.audio import Pipeline
 
-from config import DIARIZATION_MODEL
+from settings import DIARIZATION_MODEL
 
 _pipeline = None  # пока не загружена
 

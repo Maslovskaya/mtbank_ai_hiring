@@ -63,7 +63,7 @@ ASR-слой ничего не знает про агентов, агенты н
 ### Структура репозитория
 
 ```
-config.py                  все настраиваемые параметры (читаются из .env)
+settings.py                все настраиваемые параметры (читаются из .env)
 logger.py                  JSON-логирование + обёртка для логов агентов
 llm_json.py                извлечение JSON из ответа LLM
 audio_input.py             скачивание аудио по ссылке, временные файлы
@@ -135,7 +135,7 @@ uvicorn api.main:app --reload
 | `HF_TOKEN` | https://huggingface.co/settings/tokens + принять условия моделей `pyannote/segmentation-3.0`, `pyannote/speaker-diarization-3.1`, `pyannote/speaker-diarization-community-1` |
 
 Остальные параметры (модель LLM, размер Whisper, устройство) необязательны —
-значения по умолчанию заданы в `config.py`, переопределяются через `.env`.
+значения по умолчанию заданы в `settings.py`, переопределяются через `.env`.
 
 ---
 
