@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аналитика звонков — МТБанк</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2029;
+    --panel-2: #222a35;
+    --line: #2e3846;
+    --text: #e6edf3;
+    --muted: #8b97a6;
+    --accent: #d32f2f;
+    --accent-soft: #ff6659;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --operator: #58a6ff;
+    --client: #bc8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  header { margin-bottom: 32px; }
+  h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.3px; }
+  .sub { color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  /* --- загрузка файла --- */
+  .drop {
+    display: block;
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent-soft); background: var(--panel-2); }
+  .drop-title { font-weight: 600; margin-bottom: 4px; }
+  .drop-hint { color: var(--muted); font-size: 13px; }
+  #file { display: none; }
+
+  button {
+    margin-top: 16px;
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--accent-soft); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* --- статус выполнения --- */
+  .status { display: none; align-items: center; gap: 12px; margin-top: 14px; color: var(--muted); font-size: 14px; }
+  .status.on { display: flex; }
+  .spinner {
+    width: 18px; height: 18px; flex: none;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent-soft);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { color: var(--accent-soft); }
+
+  /* --- результаты анализа --- */
+  #results { display: none; }
+  #results.on { display: block; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .tile-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .tile-value { font-size: 22px; font-weight: 600; }
+
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 14px; }
+
+  .check { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+  .check + .check { border-top: 1px solid var(--line); }
+  .mark { font-weight: 700; width: 18px; flex: none; text-align: center; }
+  .mark.yes { color: var(--ok); }
+  .mark.no { color: var(--accent-soft); }
+
+  ul.items { margin: 0; padding-left: 20px; }
+  ul.items li { margin-bottom: 6px; }
+
+  .line { display: grid; grid-template-columns: 78px 92px 1fr; gap: 10px; padding: 8px 0; font-size: 14px; }
+  .line + .line { border-top: 1px solid var(--line); }
+  .time { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 12px; padding-top: 2px; }
+  .who { font-weight: 600; font-size: 13px; padding-top: 1px; }
+  .who.op { color: var(--operator); }
+  .who.cl { color: var(--client); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Аналитика звонков контакт-центра</h1>
+    <div class="sub">Загрузите запись разговора — система расшифрует её, разделит по говорящим и проанализирует четырьмя агентами.</div>
+  </header>
+
+  <div class="card">
+    <label class="drop" id="drop" for="file">
+      <div class="drop-title" id="dropTitle">Перетащите аудиофайл или нажмите для выбора</div>
+      <div class="drop-hint">WAV, MP3, OGG</div>
+    </label>
+    <input type="file" id="file" accept="audio/*">
+    <button id="go" disabled>Анализировать</button>
+    <div class="status" id="status">
+      <div class="spinner"></div>
+      <span id="statusText"></span>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="tiles">
+      <div class="tile"><div class="tile-label">Тема</div><div class="tile-value" id="topic">—</div></div>
+      <div class="tile"><div class="tile-label">Приоритет</div><div class="tile-value" id="priority">—</div></div>
+      <div class="tile"><div class="tile-label">Качество</div><div class="tile-value" id="score">—</div></div>
+      <div class="tile"><div class="tile-label">Compliance</div><div class="tile-value" id="compliance">—</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Чеклист оператора</h2>
+      <div id="checklist"></div>
+    </div>
+
+    <div class="card" id="issuesCard">
+      <h2>Нарушения</h2>
+      <ul class="items" id="issues"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Резюме</h2>
+      <div id="summary"></div>
+    </div>
+
+    <div class="card" id="actionsCard">
+      <h2>Что сделать после звонка</h2>
+      <ul class="items" id="actions"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Транскрипт</h2>
+      <div id="transcript"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Подписи пунктов чеклиста: ключи совпадают с полями quality_score.checklist из API
+const CHECKLIST_LABELS = {
+  greeting: "Приветствие",
+  need_detection: "Выявление потребности",
+  solution_provided: "Решение предложено",
+  farewell: "Прощание",
+};
+
+const $ = (id) => document.getElementById(id);
+let selectedFile = null;
+
+// --- выбор файла: кликом или перетаскиванием ---
+$("file").addEventListener("change", (event) => selectFile(event.target.files[0]));
+
+const drop = $("drop");
+["dragenter", "dragover"].forEach((name) =>
+  drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add("over"); })
+);
+["dragleave", "drop"].forEach((name) =>
+  drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove("over"); })
+);
+drop.addEventListener("drop", (event) => selectFile(event.dataTransfer.files[0]));
+
+function selectFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+  $("dropTitle").textContent = file.name + " · " + sizeMb + " МБ";
+  $("go").disabled = false;
+}
+
+// --- отправка файла на анализ ---
+$("go").addEventListener("click", async () => {
+  if (!selectedFile) return;
+
+  $("go").disabled = true;
+  $("results").classList.remove("on");
+  showStatus("Анализируем запись. Распознавание речи идёт на процессоре и занимает время — это может длиться несколько минут.");
+
+  const form = new FormData();
+  form.append("file", selectedFile);
+
+  try {
+    const response = await fetch("/analyze", { method: "POST", body: form });
+    if (!response.ok) throw new Error("сервер ответил " + response.status);
+    render(await response.json());
+    hideStatus();
+  } catch (error) {
+    showStatus("Не удалось проанализировать запись: " + error.message, true);
+  } finally {
+    $("go").disabled = false;
+  }
+});
+
+function showStatus(text, isError = false) {
+  $("status").classList.add("on");
+  $("statusText").textContent = text;
+  $("statusText").className = isError ? "error" : "";
+  $("status").querySelector(".spinner").style.display = isError ? "none" : "block";
+}
+
+function hideStatus() {
+  $("status").classList.remove("on");
+}
+
+// --- отрисовка ответа API ---
+function render(data) {
+  $("topic").textContent = data.classification.topic;
+  $("priority").textContent = data.classification.priority;
+  $("score").textContent = data.quality_score.total + "/100";
+  $("compliance").textContent = data.compliance.passed ? "✓ чисто" : "⚠ нарушения";
+  $("compliance").style.color = data.compliance.passed ? "var(--ok)" : "var(--warn)";
+
+  $("checklist").innerHTML = Object.entries(CHECKLIST_LABELS)
+    .map(([key, label]) => {
+      const passed = data.quality_score.checklist[key];
+      return '<div class="check">'
+        + '<span class="mark ' + (passed ? "yes" : "no") + '">' + (passed ? "✓" : "✗") + "</span>"
+        + "<span>" + label + "</span>"
+        + "</div>";
+    })
+    .join("");
+
+  const issues = data.compliance.issues || [];
+  $("issuesCard").style.display = issues.length ? "block" : "none";
+  $("issues").innerHTML = issues.map((text) => "<li>" + escapeHtml(text) + "</li>").join("");
+
+  $("summary").textContent = data.summary;
+
+  const actions = data.action_items || [];
+  $("actionsCard").style.display = actions.length ? "block" : "none";
+  $("actions").innerHTML = actions.map((text) => "<li>" + escapeHtml(text) + "</li>").join("");
+
+  $("transcript").innerHTML = data.transcript
+    .map((segment) => {
+      const isOperator = segment.speaker === "Оператор";
+      return '<div class="line">'
+        + '<span class="time">' + segment.start.toFixed(1) + "–" + segment.end.toFixed(1) + "</span>"
+        + '<span class="who ' + (isOperator ? "op" : "cl") + '">' + escapeHtml(segment.speaker) + "</span>"
+        + "<span>" + escapeHtml(segment.text) + "</span>"
+        + "</div>";
+    })
+    .join("");
+
+  $("results").classList.add("on");
+}
+
+// Текст приходит от ASR и LLM — экранируем, чтобы случайные символы не сломали разметку
+function escapeHtml(text) {
+  const node = document.createElement("div");
+  node.textContent = String(text);
+  return node.innerHTML;
+}
+</script>
+</body>
+</html>

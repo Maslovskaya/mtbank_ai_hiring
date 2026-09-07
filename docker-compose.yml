@@ -24,6 +24,7 @@ services:
       - ./llm_json.py:/app/llm_json.py
       - ./config.py:/app/config.py
       - ./logger.py:/app/logger.py
+      - ./audio_input.py:/app/audio_input.py
     environment:
       - PIP_DEFAULT_TIMEOUT=120
       - PYTHONUNBUFFERED=1
