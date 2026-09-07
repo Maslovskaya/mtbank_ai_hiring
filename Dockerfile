@@ -12,15 +12,24 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Работаем не от root, а от обычного пользователя.
+# Это и требование хостинга Hugging Face Spaces (контейнеры там запускаются
+# с UID 1000), и просто хорошая практика: процесс с правами root внутри
+# контейнера — лишний риск.
+RUN useradd --create-home --uid 1000 appuser
+USER appuser
+ENV HOME=/home/appuser \
+    PATH=/home/appuser/.local/bin:$PATH
+
+WORKDIR /home/appuser/app
 
 # Зависимости копируем и ставим ДО кода — это важно для скорости пересборки.
 # Docker кэширует каждый шаг: пока requirements.txt не менялся, тяжёлая
 # установка torch/whisper берётся из кэша, даже если код правился сто раз.
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=appuser requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-COPY . .
+COPY --chown=appuser . .
 
 EXPOSE 8000
 

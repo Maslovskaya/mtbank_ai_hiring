@@ -15,7 +15,7 @@ services:
     volumes:
       # общий кэш скачанных моделей: Whisper и pyannote качаются один раз
       # и переживают пересоздание контейнеров
-      - model-cache:/root/.cache
+      - model-cache:/home/appuser/.cache
     restart: unless-stopped
 
   open-webui:
