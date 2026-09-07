@@ -1,58 +1,78 @@
+"""
+Оркестрация анализа звонка — сердце системы.
+
+analyze() последовательно проводит запись через два слоя:
+
+    ASR-слой        аудио → транскрипт с ролями говорящих
+    Multi-agent     транскрипт → классификация, качество, compliance, резюме
+
+и собирает результат в формат, описанный в задании.
+
+Роль супервизора выполняет сама эта функция: агенты независимы друг от друга,
+получают один и тот же транскрипт и не обмениваются результатами, поэтому
+отдельный фреймворк оркестрации (LangGraph и подобные) здесь не нужен.
+"""
+
 import json
-import time
 
 from dotenv import load_dotenv
 
-from asr.transcriber import transcribe
-from asr.diarizer import diarize
-from asr.aligner import assign_speakers
-from asr.roles import assign_roles
-
 from agents.classifier import classify
-from agents.quality import check_quality
 from agents.compliance import check_compliance
+from agents.quality import check_quality
 from agents.summarizer import summarize
+from asr.aligner import assign_speakers
+from asr.diarizer import diarize
+from asr.roles import assign_roles
+from asr.transcriber import transcribe
+from logger import log_event, run_agent, run_stage, setup_logging
 
-from logger import run_agent, setup_logging
-
+# .env и логирование настраиваются один раз при импорте модуля,
+# а не при каждом вызове analyze()
+load_dotenv()
 setup_logging()
 
+
 def analyze(audio_path):
-    load_dotenv()
+    """
+    Полный анализ записи звонка.
 
-    t0 = time.time()
-    asr_segments = transcribe(audio_path)
-    t1 = time.time()
-    print(f"transcribe: {t1 - t0:.1f} сек")
+    audio_path: путь к аудиофайлу (WAV, MP3, OGG)
 
-    diarization_segments = diarize(audio_path)
-    t2 = time.time()
-    print(f"diarize: {t2 - t1:.1f} сек")
+    Возвращает словарь с ключами transcript, classification, quality_score,
+    compliance, summary, action_items.
+    """
+    log_event("analysis_started", audio_path=audio_path)
 
-    segments = assign_speakers(asr_segments, diarization_segments)
-    segments = assign_roles(segments)
-    t3 = time.time()
-    print(f"assign_speakers+roles: {t3 - t2:.1f} сек")
+    # --- ASR-слой: получаем транскрипт с разметкой по ролям ---
+    asr_segments = run_stage("transcribe", transcribe, audio_path)
+    diarization_segments = run_stage("diarize", diarize, audio_path)
 
+    # транскрипт и диаризация считаются независимо — здесь они соединяются:
+    # каждой реплике присваивается говорящий, а затем его роль
+    segments = run_stage("align", assign_speakers, asr_segments, diarization_segments)
+    segments = run_stage("assign_roles", assign_roles, segments)
+
+    # --- Multi-agent слой: четыре независимых агента на одном транскрипте ---
     classification = run_agent("classifier", classify, segments)
     quality_score = run_agent("quality", check_quality, segments)
     compliance = run_agent("compliance", check_compliance, segments)
-    summary_result = run_agent("summarizer", summarize, segments)
+    summary = run_agent("summarizer", summarize, segments)
 
-    t4 = time.time()
-    print(f"4 агента (последовательно): {t4 - t3:.1f} сек")
+    log_event("analysis_finished", segments=len(segments))
 
-    result = {
+    return {
         "transcript": segments,
         "classification": classification,
         "quality_score": quality_score,
         "compliance": compliance,
-        "summary": summary_result["summary"],
-        "action_items": summary_result["action_items"],
+        # суммаризатор отдаёт два поля одним словарём,
+        # а в схеме ответа они лежат на верхнем уровне
+        "summary": summary["summary"],
+        "action_items": summary["action_items"],
     }
 
-    print(f"ИТОГО: {time.time() - t0:.1f} сек")
-    return result
 
 if __name__ == "__main__":
-    print(analyze("test_data/dialog_full.wav"))
+    result = analyze("test_data/dialog_full.wav")
+    print(json.dumps(result, ensure_ascii=False, indent=2))

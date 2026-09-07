@@ -43,6 +43,22 @@ def log_event(event, **fields):
     logger.info(event, extra={"extra_fields": fields})
 
 
+def run_stage(name, stage_func, *args):
+    """
+    Выполняет этап конвейера (распознавание, диаризация...) и логирует,
+    сколько времени он занял.
+
+    Отличие от run_agent: у этапов не логируются вход и выход — транскрипт
+    и аудио слишком объёмные, а польза в основном в тайминге.
+    """
+    started = time.time()
+    result = stage_func(*args)
+
+    log_event("stage_completed", stage=name, duration_sec=round(time.time() - started, 2))
+
+    return result
+
+
 def run_agent(name, agent_func, segments):
     """
     Вызывает агента и логирует его вход/выход + время работы.
