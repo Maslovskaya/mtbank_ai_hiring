@@ -20,12 +20,16 @@ def get_client():
     return _client
 
 
-def call_llm_json(system_prompt, user_content, model=DEFAULT_MODEL, max_retries=2):
+def call_llm_json(system_prompt, user_content, model=DEFAULT_MODEL, max_retries=2, validate=None):
     """
     Вызывает LLM с system+user сообщениями и разбирает ответ как JSON.
-    Если модель вернула невалидный JSON — пробует ещё раз (до max_retries раз):
-    это обычно случайная опечатка модели в формате, а не системная проблема,
-    повторный запрос почти всегда проходит.
+
+    Повторяет запрос (до max_retries раз), если:
+    - ответ не разобрался как JSON (синтаксическая проблема), либо
+    - ответ не прошёл проверку validate (смысловая проблема).
+
+    validate: необязательная функция, принимает разобранный результат
+    и возвращает True/False — годится ли такой ответ.
     """
     client = get_client()
     last_error = None
@@ -38,9 +42,18 @@ def call_llm_json(system_prompt, user_content, model=DEFAULT_MODEL, max_retries=
                 {"role": "user", "content": user_content},
             ],
         )
+
         try:
-            return parse_json_response(response.choices[0].message.content)
+            result = parse_json_response(response.choices[0].message.content)
         except json.JSONDecodeError as error:
             last_error = error
+            continue
+
+        if validate is not None and not validate(result):
+            last_error = ValueError(f"Ответ LLM не прошёл проверку: {result}")
+            continue
+
+        return result
 
     raise last_error
+

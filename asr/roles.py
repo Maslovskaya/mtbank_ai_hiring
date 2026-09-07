@@ -1,4 +1,5 @@
 from agents.llm_client import call_llm_json
+from logger import log_event
 
 
 def assign_roles(segments):
@@ -20,7 +21,23 @@ def assign_roles(segments):
     {"SPEAKER_00": "Оператор", "SPEAKER_01": "Клиент"}
     Ключи должны точно совпадать с метками, которые встретились в диалоге."""
 
-    role_map = call_llm_json(SYSTEM_PROMPT, dialogue_text)
+    labels_in_transcript = {seg["speaker"] for seg in segments}
+
+    def is_complete_mapping(role_map):
+        return labels_in_transcript.issubset(role_map)
+
+    role_map = call_llm_json(SYSTEM_PROMPT, dialogue_text, validate=is_complete_mapping)
+
+
+    # если модель вернула метки не в том виде, роли не подставятся —
+    # раньше это происходило молча, теперь такое видно в логах
+    unmapped = sorted(labels_in_transcript - set(role_map))
+    if unmapped:
+        log_event(
+            "role_mapping_incomplete",
+            role_map=role_map,
+            unmapped_labels=unmapped,
+        )
 
     for seg in segments:
         seg["speaker"] = role_map.get(seg["speaker"], seg["speaker"])

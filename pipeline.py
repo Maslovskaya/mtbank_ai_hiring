@@ -13,6 +13,10 @@ from agents.quality import check_quality
 from agents.compliance import check_compliance
 from agents.summarizer import summarize
 
+from logger import run_agent, setup_logging
+
+setup_logging()
+
 def analyze(audio_path):
     load_dotenv()
 
@@ -30,10 +34,11 @@ def analyze(audio_path):
     t3 = time.time()
     print(f"assign_speakers+roles: {t3 - t2:.1f} сек")
 
-    classification = classify(segments)
-    quality_score = check_quality(segments)
-    compliance = check_compliance(segments)
-    summary_result = summarize(segments)
+    classification = run_agent("classifier", classify, segments)
+    quality_score = run_agent("quality", check_quality, segments)
+    compliance = run_agent("compliance", check_compliance, segments)
+    summary_result = run_agent("summarizer", summarize, segments)
+
     t4 = time.time()
     print(f"4 агента (последовательно): {t4 - t3:.1f} сек")
 
