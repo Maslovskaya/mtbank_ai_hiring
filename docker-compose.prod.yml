@@ -1,0 +1,47 @@
+# Конфигурация для сервера (продакшен).
+#
+# Отличия от локальной docker-compose.yml:
+#   - наружу открыт только Caddy (80/443), приложение недоступно напрямую;
+#   - HTTPS с автоматическим сертификатом Let's Encrypt;
+#   - не поднимаются open-webui и pipelines: на сервере с 4 ГБ памяти
+#     они не помещаются вместе с моделями. Локально стек запускается целиком
+#     обычной командой docker compose up.
+#
+# Запуск на сервере:
+#   docker compose -f docker-compose.prod.yml up -d
+
+services:
+  api:
+    build: .
+    container_name: mtbank-api
+    env_file:
+      - .env
+    volumes:
+      # модели скачиваются один раз и переживают перезапуски
+      - model-cache:/home/appuser/.cache
+    # expose, а не ports: порт виден только внутри Docker-сети,
+    # снаружи достучаться напрямую нельзя — только через Caddy
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # сертификаты сохраняются между перезапусками, иначе Caddy будет
+      # запрашивать их заново и упрётся в лимиты Let's Encrypt
+      - caddy-data:/data
+      - caddy-config:/config
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  model-cache:
+  caddy-data:
+  caddy-config:
